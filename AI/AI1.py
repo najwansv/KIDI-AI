@@ -1,41 +1,50 @@
 import cv2
-import os
 import torch
+from flask import Flask, Response
+
+# Initialize Flask app
+app = Flask(__name__)
 
 # Load the YOLOv5 model
 model_path = '/Model/yolov5s.pt'
 model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
 
-# Open the RTSP stream
+# RTSP stream URL
 rtsp_url = 'rtsp://admin:telkomiot123@192.168.1.110:554/cam/realmonitor?channel=1&subtype=0'
-cap = cv2.VideoCapture(rtsp_url)
 
-# Create a named window
-cv2.namedWindow('RTSP Stream', cv2.WINDOW_NORMAL)
+def generate_frames():
+    # Open the RTSP stream
+    cap = cv2.VideoCapture(rtsp_url)
+    if not cap.isOpened():
+        print("Error: Unable to open RTSP stream")
+        return
 
-# Resize the window to fit the screen
-screen_width = 1920  # Replace with your screen width
-screen_height = 1080  # Replace with your screen height
-cv2.resizeWindow('RTSP Stream', screen_width, screen_height)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
+        # Perform object detection
+        results = model(frame)
 
-    # Perform object detection
-    results = model(frame)
+        # Draw bounding boxes on the frame
+        annotated_frame = results.render()[0]
 
-    # Draw bounding boxes on the frame
-    frame = results.render()[0]
+        # Encode frame as JPEG
+        _, buffer = cv2.imencode('.jpg', annotated_frame)
+        frame = buffer.tobytes()
 
-    # Display the frame
-    cv2.imshow('RTSP Stream', frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+        # Yield the frame as a byte stream
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-# Release resources
-cap.release()
-cv2.destroyAllWindows()
+    cap.release()
 
-print("Object detection on RTSP stream completed.")
+@app.route('/video_feed')
+def video_feed():
+    # Route for video feed
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+if __name__ == "__main__":
+    # Run the Flask app
+    app.run(host='0.0.0.0', port=5000, debug=True)
