@@ -64,8 +64,8 @@ def stop_streaming():
 
 @app.route('/video_feed')
 def video_feed():
-    global streaming
-    streaming = True  # Reset the flag when starting the feed
+    if not streaming:
+        return "Streaming is stopped", 400
     return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # Start the Flask server in a separate thread
