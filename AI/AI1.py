@@ -10,7 +10,7 @@ model_path = '/Model/yolov5s.pt'
 model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
 
 # RTSP stream URL
-rtsp_url = 'rtsp://admin:telkomiot123@192.168.1.110:554/cam/realmonitor?channel=1&subtype=0'
+rtsp_url = 'rtsp://admin:telkomiot123@36.92.168.180:11054/cam/realmonitor?channel=1&subtype=0'
 
 def generate_frames():
     # Open the RTSP stream
