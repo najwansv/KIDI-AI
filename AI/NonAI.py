@@ -6,26 +6,22 @@ from flask import Flask, Response
 app = Flask(__name__)
 
 def generate_frames(rtsp_url):
-    # Open a connection to the RTSP stream
     cap = cv2.VideoCapture(rtsp_url)
 
     if not cap.isOpened():
         print("Error: Could not open video stream")
         return
 
-    while True:
-        # Capture frame-by-frame
+    while cap.isOpened():
         ret, frame = cap.read()
 
         if not ret:
             print("Error: Could not read frame")
             break
 
-        # Encode the frame in JPEG format
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
 
-        # Yield the frame as part of a multipart response
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 

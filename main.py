@@ -40,7 +40,7 @@ def stop_streaming():
     global process
     if process:
         try:
-            process.terminate()  # Terminate the process
+            process.kill()  # Terminate the process
             process.wait()  # Ensure the process has fully stopped
             process = None
             return "Streaming stopped", 200
