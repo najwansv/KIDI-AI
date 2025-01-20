@@ -1,9 +1,9 @@
 import http.server
 import socketserver
 from threading import Thread
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask_cors import CORS
-import subprocess
+import cv2
 
 # Specify the directory containing your web files
 DIRECTORY = "Dashboard"
@@ -13,40 +13,60 @@ PORT = 80  # Port for serving the HTML
 app = Flask(__name__)
 CORS(app)
 
-process = None  # Global variable to store the streaming process
+# Global variables
+streaming = False  # Flag to control streaming
+rtsp_url = None  # RTSP URL
 
-# Route to start streaming
+def generate_frames():
+    global streaming, rtsp_url
+    cap = cv2.VideoCapture(rtsp_url)
+
+    if not cap.isOpened():
+        print("Error: Could not open video stream")
+        return
+
+    while streaming and cap.isOpened():
+        ret, frame = cap.read()
+
+        if not ret:
+            print("Error: Could not read frame")
+            break
+
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    cap.release()
+
 @app.route('/start_streaming', methods=['POST'])
 def start_streaming():
-    global process
-    rtsp_link = request.form.get('rtsp')
+    global streaming, rtsp_url
+    rtsp_url = request.form.get('rtsp')
     
-    if not rtsp_link:
+    if not rtsp_url:
         return "RTSP link is required", 400
 
-    if process and process.poll() is None:  # Check if a process is already running
+    if streaming:  # Check if streaming is already running
         return "Streaming is already running", 400
 
-    try:
-        # Run the Python script with the RTSP link as an argument
-        process = subprocess.Popen(['python', 'AI\\NonAI.py', rtsp_link])
-        return "Streaming started", 200
-    except Exception as e:
-        return str(e), 500
+    streaming = True
+    return "Streaming started", 200
 
-# Route to stop streaming
 @app.route('/stop_streaming', methods=['POST'])
 def stop_streaming():
-    global process
-    if process:
-        try:
-            process.kill()  # Terminate the process
-            process.wait()  # Ensure the process has fully stopped
-            process = None
-            return "Streaming stopped", 200
-        except Exception as e:
-            return str(e), 500
+    global streaming
+    if streaming:
+        streaming = False
+        return "Streaming stopped", 200
     return "No streaming process to stop", 400
+
+@app.route('/video_feed')
+def video_feed():
+    global streaming
+    streaming = True  # Reset the flag when starting the feed
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # Start the Flask server in a separate thread
 def start_flask():

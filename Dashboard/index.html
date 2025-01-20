@@ -14,41 +14,43 @@
     <button id="start-streaming">Start Streaming</button>
     <button id="stop-streaming">Stop Streaming</button>
     
-    <img id="video-stream" src="http://localhost:5000/video_feed" alt="Video Stream" style="width: 100%; max-width: 720px;">
+    <img id="video-stream" src="http://localhost:5001/video_feed" alt="Video Stream" style="width: 100%; max-width: 720px;">
     
     <script>
         document.getElementById('start-streaming').addEventListener('click', function() {
-        const rtspLink = document.getElementById('rtsp-link').value;
+            const rtspLink = document.getElementById('rtsp-link').value;
 
-        fetch('http://localhost:5001/start_streaming', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `rtsp=${encodeURIComponent(rtspLink)}`,
-        })
-        .then(response => {
-            if (response.ok) {
-                alert('Streaming started successfully!');
-            } else {
-                response.text().then(text => alert('Error: ' + text));
-            }
-        })
-        .catch(error => alert('Error: ' + error));
+            fetch('http://localhost:5001/start_streaming', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `rtsp=${encodeURIComponent(rtspLink)}`,
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Streaming started successfully!');
+                    document.getElementById('video-stream').src = "http://localhost:5001/video_feed";
+                } else {
+                    response.text().then(text => alert('Error: ' + text));
+                }
+            })
+            .catch(error => alert('Error: ' + error));
         });
 
         document.getElementById('stop-streaming').addEventListener('click', function() {
-        fetch('http://localhost:5001/stop_streaming', {
-            method: 'POST',
-        })
-        .then(response => {
-            if (response.ok) {
-                alert('Streaming stopped successfully!');
-            } else {
-                response.text().then(text => alert('Error: ' + text));
-            }
-        })
-        .catch(error => alert('Error: ' + error));
+            fetch('http://localhost:5001/stop_streaming', {
+                method: 'POST',
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Streaming stopped successfully!');
+                    document.getElementById('video-stream').src = "";
+                } else {
+                    response.text().then(text => alert('Error: ' + text));
+                }
+            })
+            .catch(error => alert('Error: ' + error));
         });
     </script>
 </body>
