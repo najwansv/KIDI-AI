@@ -3,7 +3,7 @@ import socketserver
 
 # Specify the directory containing your web files
 DIRECTORY = "Dashboard"
-PORT = 8000  # You can choose any port
+PORT = 80  # You can choose any port
 
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):

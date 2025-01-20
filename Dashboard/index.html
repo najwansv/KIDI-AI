@@ -3,52 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <style>
-        body {
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            background-color: #f0f0f0;
-        }
-        .top-left {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-        }
-        .left-center {
-            position: absolute;
-            top: 50%;
-            left: 10px;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .video-container {
-            width: 80%;
-            height: 60%;
-            background-color: black;
-        }
-    </style>
+    <title>RTSP Video Player</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <button class="top-left">Live !</button>
-    <div class="left-center">
-        <button>AI 1</button>
-        <button>AI 2</button>
-        <button>AI 3</button>
-        <button>AI 3</button>
+    <div id="main-container" class="container">
+        <h1>RTSP Link</h1>
+        <form id="rtsp-form">
+            <input type="text" id="rtsp-link" placeholder="Enter RTSP Link" required>
+            <button type="submit">LIVE!</button>
+        </form>
+        <div id="stream-container" class="hidden">
+            <div class="left-buttons">
+                <button class="ai-button">AI 1</button>
+                <button class="ai-button">AI 2</button>
+                <button class="ai-button">AI 3</button>
+                <button class="ai-button">AI 4</button>
+            </div>
+            <div class="video-frame">
+                <video id="rtsp-player" controls autoplay></video>
+            </div>
+        </div>
     </div>
-    <div class="video-container">
-        <!-- RTSP video player integration goes here -->
-        <video controls autoplay>
-            <source src="rtsp://your_rtsp_stream_url" type="application/x-rtsp">
-            Your browser does not support the video tag.
-        </video>
-    </div>
+    <script src="script.js"></script>
 </body>
-</html></html>
+</html>
