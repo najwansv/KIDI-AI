@@ -1,9 +1,11 @@
+# main.py
 import http.server
 import socketserver
 from threading import Thread
 from flask import Flask, request, Response
 from flask_cors import CORS
-import cv2
+from AI.NonAI import generate_frames  # Import the function
+from AI.AI1 import All_Obj_Detection 
 
 # Specify the directory containing your web files
 DIRECTORY = "Dashboard"
@@ -16,34 +18,13 @@ CORS(app)
 # Global variables
 streaming = False  # Flag to control streaming
 rtsp_url = None  # RTSP URL
-
-def generate_frames():
-    global streaming, rtsp_url
-    cap = cv2.VideoCapture(rtsp_url)
-
-    if not cap.isOpened():
-        print("Error: Could not open video stream")
-        return
-
-    while streaming and cap.isOpened():
-        ret, frame = cap.read()
-
-        if not ret:
-            print("Error: Could not read frame")
-            break
-
-        _, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
-
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-    cap.release()
+ai_mode = None  # AI mode
 
 @app.route('/start_streaming', methods=['POST'])
 def start_streaming():
-    global streaming, rtsp_url
+    global streaming, rtsp_url, ai_mode
     rtsp_url = request.form.get('rtsp')
+    ai_mode = request.form.get('ai_mode')
     
     if not rtsp_url:
         return "RTSP link is required", 400
@@ -64,9 +45,14 @@ def stop_streaming():
 
 @app.route('/video_feed')
 def video_feed():
+    global ai_mode
     if not streaming:
         return "Streaming is stopped", 400
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if ai_mode == 'AI1':
+        print("AI1")
+        return Response(All_Obj_Detection(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+    else:
+        return Response(generate_frames(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 # Start the Flask server in a separate thread
 def start_flask():

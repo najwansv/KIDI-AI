@@ -16,7 +16,33 @@
     
     <img id="video-stream" src="http://localhost:5001/video_feed" alt="Video Stream" style="width: 100%; max-width: 720px;">
     
+    <button id="AI1">AI 1</button>
+    <button id="AI2">AI 2</button>
+    <button id="AI3">AI 3</button>
+    <button id="AI4">AI 4</button>
     <script>
+        let aiMode = null;
+
+        document.getElementById('AI1').addEventListener('click', function() {
+            aiMode = 'AI1';
+            alert('AI 1 selected');
+        });
+
+        document.getElementById('AI2').addEventListener('click', function() {
+            aiMode = 'AI2';
+            alert('AI 2 selected');
+        });
+
+        document.getElementById('AI3').addEventListener('click', function() {
+            aiMode = 'AI3';
+            alert('AI 3 selected');
+        });
+
+        document.getElementById('AI4').addEventListener('click', function() {
+            aiMode = 'AI4';
+            alert('AI 4 selected');
+        });
+
         document.getElementById('start-streaming').addEventListener('click', function() {
             const rtspLink = document.getElementById('rtsp-link').value;
 
@@ -25,7 +51,7 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `rtsp=${encodeURIComponent(rtspLink)}`,
+                body: `rtsp=${encodeURIComponent(rtspLink)}&ai_mode=${encodeURIComponent(aiMode)}`,
             })
             .then(response => {
                 if (response.ok) {

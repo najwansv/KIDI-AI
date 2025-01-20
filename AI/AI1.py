@@ -1,18 +1,18 @@
 import cv2
 import torch
-from flask import Flask, Response
+# from flask import Flask, Response
 
 # Initialize Flask app
-app = Flask(__name__)
+# app = Flask(__name__)
 
 # Load the YOLOv5 model
 model_path = '/Model/yolov5s.pt'
 model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
 
 # RTSP stream URL
-rtsp_url = 'rtsp://admin:telkomiot123@36.92.168.180:11054/cam/realmonitor?channel=1&subtype=0'
+# rtsp_url = 'rtsp://admin:telkomiot123@36.92.168.180:11054/cam/realmonitor?channel=1&subtype=0'
 
-def generate_frames():
+def All_Obj_Detection(rtsp_url):
     # Open the RTSP stream
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
@@ -41,12 +41,3 @@ def generate_frames():
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
-
-@app.route('/video_feed')
-def video_feed():
-    # Route for video feed
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-if __name__ == "__main__":
-    # Run the Flask app
-    app.run(host='0.0.0.0', port=5000, debug=True)
