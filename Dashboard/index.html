@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        .top-left {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+        .left-center {
+            position: absolute;
+            top: 50%;
+            left: 10px;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .video-container {
+            width: 80%;
+            height: 60%;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <button class="top-left">Live !</button>
+    <div class="left-center">
+        <button>AI 1</button>
+        <button>AI 2</button>
+        <button>AI 3</button>
+        <button>AI 3</button>
+    </div>
+    <div class="video-container">
+        <!-- RTSP video player integration goes here -->
+        <video controls autoplay>
+            <source src="rtsp://your_rtsp_stream_url" type="application/x-rtsp">
+            Your browser does not support the video tag.
+        </video>
+    </div>
+</body>
+</html></html>
