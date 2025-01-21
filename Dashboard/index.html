@@ -20,6 +20,7 @@
     <button id="AI2">AI 2</button>
     <button id="AI3">AI 3</button>
     <button id="AI4">AI 4</button>
+    <button id="NonAI">No AI</button>
     <script>
         let aiMode = null;
 
@@ -41,6 +42,11 @@
         document.getElementById('AI4').addEventListener('click', function() {
             aiMode = 'AI4';
             alert('AI 4 selected');
+        });
+
+        document.getElementById('NonAI').addEventListener('click', function() {
+            aiMode = 'NonAI';
+            alert('No AI selected');
         });
 
         document.getElementById('start-streaming').addEventListener('click', function() {
