@@ -6,7 +6,7 @@ import torch
 # app = Flask(__name__)
 
 # Load the YOLOv5 model
-model_path = '/Model/yolov5s.pt'
+model_path = '/Model/yolov5m.pt'
 model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
 
 # RTSP stream URL
