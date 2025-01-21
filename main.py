@@ -28,7 +28,7 @@ def start_streaming():
     global streaming, rtsp_url, ai_mode
     rtsp_url = request.form.get('rtsp')
     ai_mode = request.form.get('ai_mode')
-    
+
     if not rtsp_url:
         return "RTSP link is required", 400
 
@@ -36,6 +36,12 @@ def start_streaming():
         return "Streaming is already running", 400
 
     streaming = True
+
+    # Start streaming with NonAI logic
+    if not ai_mode or ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4']:
+        print("Running NonAI mode")
+        Thread(target=lambda: generate_frames(rtsp_url)).start()
+
     return "Streaming started", 200
 
 @app.route('/stop_streaming', methods=['POST'])
