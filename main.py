@@ -7,6 +7,8 @@ from flask_cors import CORS
 from AI.NonAI import generate_frames  # Import the function
 from AI.AI1 import All_Obj_Detection 
 from AI.AI2 import All_Obj_Detection_In_Boundary
+from AI.AI3 import Obj_Counter
+
 
 # Specify the directory containing your web files
 DIRECTORY = "Dashboard"
@@ -55,6 +57,9 @@ def video_feed():
     if ai_mode == 'AI2':
         print("AI2")
         return Response(All_Obj_Detection_In_Boundary(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if ai_mode == 'AI3':
+        print("AI3")
+        return Response(Obj_Counter(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
     else:
         return Response(generate_frames(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
 
