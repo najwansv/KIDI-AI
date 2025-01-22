@@ -4,11 +4,7 @@ import socketserver
 from threading import Thread
 from flask import Flask, request, Response
 from flask_cors import CORS
-from AI.NonAI import generate_frames  # Import the function
-# from AI.AI1 import All_Obj_Detection 
-# from AI.AI2 import All_Obj_Detection_In_Boundary
-# from AI.AI3 import Obj_Counter
-from AI.AI import All_Obj_Detection, All_Obj_Detection_In_Boundary, Obj_Counter
+from AI.AI import  generate_frames, All_Obj_Detection, All_Obj_Detection_In_Boundary, Obj_Counter, Gender_Mood_Age_Detection
 
 
 # Specify the directory containing your web files
@@ -72,6 +68,9 @@ def video_feed():
     if ai_mode == 'AI3':
         print("AI3")
         return Response(Obj_Counter(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if ai_mode == 'AI4':
+        print("AI4")
+        return Response(Gender_Mood_Age_Detection(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
     else:
         return Response(generate_frames(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
 

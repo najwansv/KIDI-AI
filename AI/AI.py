@@ -1,5 +1,6 @@
 import cv2
 import torch
+from deepface import DeepFace
 
 model_path = '/Model/yolov5m.pt'
 model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
@@ -9,6 +10,30 @@ LINE_POSITION = 1200  # Vertical position of the line
 object_counts = {}  # Dictionary to track counts of all detected object categories
 
 
+#======================= Non AI ===========================================
+def generate_frames(rtsp_url):
+    cap = cv2.VideoCapture(rtsp_url)
+
+    if not cap.isOpened():
+        print("Error: Could not open video stream")
+        return
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+
+        if not ret:
+            print("Error: Could not read frame")
+            break
+
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    cap.release()
+
+#======================= AI 1 ===========================================
 def All_Obj_Detection(rtsp_url):
     # Open the RTSP stream
     cap = cv2.VideoCapture(rtsp_url)
@@ -38,6 +63,8 @@ def All_Obj_Detection(rtsp_url):
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
+
+#======================= AI 2 ===========================================
 
 def All_Obj_Detection_In_Boundary(rtsp_url):
     # Open the RTSP stream
@@ -121,6 +148,7 @@ def All_Obj_Detection_In_Boundary(rtsp_url):
 
     cap.release()
 
+#======================= AI 3 ===========================================
 def get_centroid(box):
     """Calculate the centroid of a bounding box."""
     x1, y1, x2, y2 = box
@@ -168,6 +196,58 @@ def Obj_Counter(rtsp_url):
 
         # Draw the counting line
         cv2.line(frame, (0, LINE_POSITION), (frame.shape[1], LINE_POSITION), (0, 0, 255), 2)
+
+        # Encode frame as JPEG
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        # Yield the frame as a byte stream
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    cap.release()
+
+#======================= AI 4 ===========================================
+def Gender_Mood_Age_Detection(rtsp_url):
+    """
+    Detect gender, mood, and age from faces in a video stream.
+
+    :param rtsp_url: URL of the RTSP video stream
+    :yield: Frames with gender, mood, and age annotations
+    """
+    # Open the RTSP stream
+    cap = cv2.VideoCapture(rtsp_url)
+    if not cap.isOpened():
+        print("Error: Unable to open RTSP stream")
+        return
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Analyze the frame for face attributes
+        try:
+            analysis = DeepFace.analyze(frame, actions=['age', 'gender', 'emotion'], enforce_detection=False)
+        except Exception as e:
+            print(f"Error during face analysis: {e}")
+            continue
+
+        # Annotate the frame with the detected information
+        for face in analysis:
+            x, y, w, h = face['region']['x'], face['region']['y'], face['region']['w'], face['region']['h']
+
+            # Extract attributes
+            gender = face['gender']
+            age = face['age']
+            emotion = max(face['emotion'], key=face['emotion'].get)  # Most dominant emotion
+
+            # Draw bounding box
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+            # Display gender, age, and emotion
+            info = f"Gender: {gender}, Age: {age}, Mood: {emotion}"
+            cv2.putText(frame, info, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         # Encode frame as JPEG
         _, buffer = cv2.imencode('.jpg', frame)
