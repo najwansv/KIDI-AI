@@ -4,160 +4,120 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YOLOv5 Stream</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f4f4f4;
-        }
-        #container {
-            text-align: center;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 600px;
-        }
-        #rtsp-section {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #rtsp-section input {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        #rtsp-section button {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #rtsp-section button:hover {
-            background: #0056b3;
-        }
-        #stream-section {
-            display: flex;
-            margin-top: 20px;
-        }
-        #controls {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            margin-right: 20px;
-        }
-        #controls button {
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        #controls button:hover {
-            background: #0056b3;
-        }
-        #video-stream {
-            flex: 1;
-            max-width: 100%;
-            border-radius: 10px;
-        }
-        #info-box {
-            margin-top: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background: #f9f9f9;
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="container">
-        <div id="rtsp-section">
-            <label for="rtsp-link">RTSP Link:</label>
-            <input type="text" id="rtsp-link" name="rtsp-link" placeholder="Enter RTSP link here">
-            <button id="submit-rtsp">LIVE!</button>
+        <div id="header">
+            <img src="logo.png" alt="Logo" id="logo">
+            <h1>KiDi IoT</h1>
         </div>
-
-        <div id="stream-section" style="display: none;">
-            <div id="controls">
-                <button id="AI1">AI 1</button>
-                <button id="AI2">AI 2</button>
-                <button id="AI3">AI 3</button>
-                <button id="AI4">AI 4</button>
-                <button id="stop-streaming">Stop Streaming</button>
+        
+        <!-- Page 1: Start Stream -->
+        <div id="start-page">
+            <div id="rtsp-section">
+                <label for="rtsp-link">RTSP Link:</label>
+                <input type="text" id="rtsp-link" name="rtsp-link" placeholder="Enter RTSP link here">
+                <button id="start-streaming">Start Streaming</button>
             </div>
-            <img id="video-stream" src="http://localhost:5001/video_feed" alt="Video Stream">
         </div>
 
-        <div id="info-box">Additional information displayed here.</div>
+        <!-- Page 2: Stream Active -->
+        <div id="stream-section" style="display: none;">
+            <div id="video-container">
+                <!-- Left section: controls and text -->
+                <div id="left-section">
+                    <p>Select AI Mode:</p>
+                    <button id="AI1">AI 1</button>
+                    <button id="AI2">AI 2</button>
+                    <button id="AI3">AI 3</button>
+                    <button id="AI4">AI 4</button>
+                    <button id="stop-streaming">Stop Streaming</button>
+                </div>
+                <!-- Right section: video -->
+                <div id="right-section">
+                    <img id="video-stream" src="" alt="Video Stream">
+                </div>
+            </div>
+        </div>
+
+        <div id="info-box">
+            <!-- Additional information can be displayed here -->
+        </div>
     </div>
 
     <script>
         let aiMode = null;
 
-        document.getElementById('submit-rtsp').addEventListener('click', function() {
-            const rtspLink = document.getElementById('rtsp-link').value;
+        document.getElementById('AI1').addEventListener('click', function() {
+            aiMode = 'AI1';
+            updateAiMode(aiMode);
+        });
 
-            if (!rtspLink) {
-                alert('Please enter an RTSP link.');
-                return;
-            }
+        document.getElementById('AI2').addEventListener('click', function() {
+            aiMode = 'AI2';
+            updateAiMode(aiMode);
+        });
+
+        document.getElementById('AI3').addEventListener('click', function() {
+            aiMode = 'AI3';
+            updateAiMode(aiMode);
+        });
+
+        document.getElementById('AI4').addEventListener('click', function() {
+            aiMode = 'AI4';
+            updateAiMode(aiMode);
+        });
+
+        
+        
+        function updateAiMode(mode) {
+            fetch('http://localhost:5001/update_ai_mode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `ai_mode=${encodeURIComponent(mode)}`
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert(`AI Mode updated to: ${mode}`);
+                    const videoStream = document.getElementById('video-stream');
+                    videoStream.src = '';
+                    setTimeout(() => {
+                        videoStream.src = `http://localhost:5001/video_feed?timestamp=${new Date().getTime()}`;
+                    }, 100);
+                } else {
+                    response.text().then(text => alert('Error: ' + text));
+                }
+            })
+            .catch(error => alert('Error: ' + error));
+        }
+
+
+        
+        document.getElementById('start-streaming').addEventListener('click', function() {
+            const rtspLink = document.getElementById('rtsp-link').value;
+            const aiMode = 'noAI'; // Set your AI mode here if needed
 
             fetch('http://localhost:5001/start_streaming', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: `rtsp=${encodeURIComponent(rtspLink)}`,
+                body: `rtsp=${encodeURIComponent(rtspLink)}&ai_mode=${encodeURIComponent(aiMode)}`,
             })
             .then(response => {
                 if (response.ok) {
                     alert('Streaming started successfully!');
-                    document.getElementById('rtsp-section').style.display = 'none';
+                    document.getElementById('video-stream').src = "http://localhost:5001/video_feed";
+                    document.getElementById('start-page').style.display = 'none';
                     document.getElementById('stream-section').style.display = 'flex';
                 } else {
                     response.text().then(text => alert('Error: ' + text));
                 }
             })
             .catch(error => alert('Error: ' + error));
-        });
-
-        document.getElementById('AI1').addEventListener('click', function() {
-            aiMode = 'AI1';
-            alert('AI 1 selected');
-            document.getElementById('info-box').style.display = 'none';
-        });
-
-        document.getElementById('AI2').addEventListener('click', function() {
-            aiMode = 'AI2';
-            alert('AI 2 selected');
-            document.getElementById('info-box').style.display = 'block';
-        });
-
-        document.getElementById('AI3').addEventListener('click', function() {
-            aiMode = 'AI3';
-            alert('AI 3 selected');
-            document.getElementById('info-box').style.display = 'block';
-        });
-
-        document.getElementById('AI4').addEventListener('click', function() {
-            aiMode = 'AI4';
-            alert('AI 4 selected');
-            document.getElementById('info-box').style.display = 'none';
         });
 
         document.getElementById('stop-streaming').addEventListener('click', function() {
@@ -167,14 +127,16 @@
             .then(response => {
                 if (response.ok) {
                     alert('Streaming stopped successfully!');
-                    document.getElementById('rtsp-section').style.display = 'flex';
+                    document.getElementById('video-stream').src = "";
                     document.getElementById('stream-section').style.display = 'none';
+                    document.getElementById('start-page').style.display = 'block';
                 } else {
                     response.text().then(text => alert('Error: ' + text));
                 }
             })
             .catch(error => alert('Error: ' + error));
         });
+        
     </script>
 </body>
 </html>
