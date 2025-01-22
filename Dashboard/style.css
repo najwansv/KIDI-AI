@@ -30,7 +30,7 @@ body {
 
 #logo {
     position: absolute; /* Position the logo absolutely */
-    left: 0; /* Align logo to the left */
+    left: 0;
     width: 125px; /* Adjust size as needed */
     height: auto;
     margin-left: 20px; /* Add some space from the left edge */

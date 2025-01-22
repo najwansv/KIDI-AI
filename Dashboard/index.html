@@ -82,11 +82,8 @@
             .then(response => {
                 if (response.ok) {
                     alert(`AI Mode updated to: ${mode}`);
-                    // Select the image element
                     const videoStream = document.getElementById('video-stream');
-                    // Clear the current src
                     videoStream.src = '';
-                    // Add a short delay and set a new src with a unique timestamp to bypass caching
                     setTimeout(() => {
                         videoStream.src = `http://localhost:5001/video_feed?timestamp=${new Date().getTime()}`;
                     }, 100);
