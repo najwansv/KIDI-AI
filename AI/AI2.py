@@ -8,9 +8,6 @@ import torch
 # RTSP stream URL
 # rtsp_url = 'rtsp://admin:telkomiot123@36.92.168.180:11054/cam/realmonitor?channel=1&subtype=0'
 
-def All_Obj_Detection(rtsp_url):import cv2
-import torch
-
 # Load the YOLOv5 model
 model_path = '/Model/yolov5m.pt'
 model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
