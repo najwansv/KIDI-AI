@@ -22,6 +22,7 @@ CORS(app)
 streaming = False  # Flag to control streaming
 rtsp_url = None  # RTSP URL
 ai_mode = None  # AI mode
+current_thread = None  # Current streaming thread
 
 @app.route('/start_streaming', methods=['POST'])
 def start_streaming():
@@ -55,6 +56,10 @@ def stop_streaming():
 @app.route('/video_feed')
 def video_feed():
     global ai_mode
+
+    streaming = False  # Stop the current stream
+    streaming = True
+
     if not streaming:
         return "Streaming is stopped", 400
     if ai_mode == 'AI1':
@@ -68,6 +73,29 @@ def video_feed():
         return Response(Obj_Counter(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
     else:
         return Response(generate_frames(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/update_ai_mode', methods=['POST'])
+def update_ai_mode():
+    global ai_mode, current_thread, streaming
+    new_ai_mode = request.form.get('ai_mode')
+    
+    if new_ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4']:
+        return "Invalid AI mode", 400
+    
+    ai_mode = new_ai_mode
+    print(f"AI Mode updated to: {ai_mode}")
+    
+    # Stop the current streaming thread if it exists
+    if current_thread and current_thread.is_alive():
+        streaming = False
+        current_thread.join()
+
+    # Start a new streaming thread with the updated AI mode
+    streaming = True
+    current_thread = Thread(target=lambda: video_feed())
+    current_thread.start()
+    
+    return "AI Mode updated and video stream reset", 200
 
 # Start the Flask server in a separate thread
 def start_flask():
