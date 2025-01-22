@@ -55,6 +55,10 @@ def stop_streaming():
 @app.route('/video_feed')
 def video_feed():
     global ai_mode
+
+    streaming = False  # Stop the current stream
+    streaming = True
+
     if not streaming:
         return "Streaming is stopped", 400
     if ai_mode == 'AI1':
@@ -68,6 +72,19 @@ def video_feed():
         return Response(Obj_Counter(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
     else:
         return Response(generate_frames(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+
+@app.route('/update_ai_mode', methods=['POST'])
+def update_ai_mode():
+    global ai_mode
+    new_ai_mode = request.form.get('ai_mode')
+    if new_ai_mode not in videos:
+        return "Invalid AI mode", 400
+    
+    ai_mode = new_ai_mode
+    print(f"AI Mode updated to: {ai_mode}")
+    
+    # Call video_feed to reset the stream with the new AI mode
+    return video_feed()
 
 # Start the Flask server in a separate thread
 def start_flask():
