@@ -5,9 +5,10 @@ from threading import Thread
 from flask import Flask, request, Response
 from flask_cors import CORS
 from AI.NonAI import generate_frames  # Import the function
-from AI.AI1 import All_Obj_Detection 
-from AI.AI2 import All_Obj_Detection_In_Boundary
-from AI.AI3 import Obj_Counter
+# from AI.AI1 import All_Obj_Detection 
+# from AI.AI2 import All_Obj_Detection_In_Boundary
+# from AI.AI3 import Obj_Counter
+from AI.AI import All_Obj_Detection, All_Obj_Detection_In_Boundary, Obj_Counter
 
 
 # Specify the directory containing your web files
