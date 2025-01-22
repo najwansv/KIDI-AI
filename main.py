@@ -2,9 +2,13 @@
 import http.server
 import socketserver
 from threading import Thread
-from flask import Flask, Response, request
+from flask import Flask, request, Response
 from flask_cors import CORS
-import cv2
+from AI.NonAI import generate_frames  # Import the function
+from AI.AI1 import All_Obj_Detection 
+from AI.AI2 import All_Obj_Detection_In_Boundary
+from AI.AI3 import Obj_Counter
+
 
 # Specify the directory containing your web files
 DIRECTORY = "Dashboard"
@@ -16,49 +20,30 @@ CORS(app)
 
 # Global variables
 streaming = False  # Flag to control streaming
+rtsp_url = None  # RTSP URL
 ai_mode = None  # AI mode
-videos = {
-    'noAI': 'AI1.py',  # Video for noAI mode
-    'AI1': 'placeholder_AI.mp4',    # Video for AI1 mode
-    'AI2': 'placeholder_AI2.mp4',    # Video for AI2 mode
-    'AI3': 'placeholder_AI3.mp4',    # Video for AI3 mode
-    'AI4': 'placeholder_AI4.mp4',    # Video for AI4 mode
-}
-
-# Function to stream video
-def stream_video(video_path):
-    """Stream video frames from a video file."""
-    print(f"video path : {video_path}")
-    cap = cv2.VideoCapture(video_path)
-
-    while streaming and cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-
-        _, buffer = cv2.imencode('.jpg', frame)
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-    cap.release()
-
+current_thread = None  # Current streaming thread
 
 @app.route('/start_streaming', methods=['POST'])
 def start_streaming():
-    global streaming, ai_mode
-    # Get the AI mode from the POST request
-    ai_mode = request.form.get('ai_mode')  # Default to 'noAI' if not provided
-    print(f"Streaming selected mode: {ai_mode}")
+    global streaming, rtsp_url, ai_mode
+    rtsp_url = request.form.get('rtsp')
+    ai_mode = request.form.get('ai_mode')
+
+    if not rtsp_url:
+        return "RTSP link is required", 400
 
     if streaming:  # Check if streaming is already running
         return "Streaming is already running", 400
 
-    if ai_mode not in videos:
-        return "Invalid AI mode", 400
-
     streaming = True
+
+    # Start streaming with NonAI logic
+    if not ai_mode or ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4']:
+        print("Running NonAI mode")
+        Thread(target=lambda: generate_frames(rtsp_url)).start()
+
     return "Streaming started", 200
-
-
 
 @app.route('/stop_streaming', methods=['POST'])
 def stop_streaming():
@@ -68,58 +53,64 @@ def stop_streaming():
         return "Streaming stopped", 200
     return "No streaming process to stop", 400
 
-
 @app.route('/video_feed')
 def video_feed():
-    global ai_mode, streaming
+    global ai_mode
+
+    streaming = False  # Stop the current stream
+    streaming = True
+
     if not streaming:
         return "Streaming is stopped", 400
-    
-    # Ensure valid AI mode
-    if ai_mode not in videos:
-        return "Invalid AI mode", 400
-
-    # Reset the video stream by forcing a re-initialization
-    streaming = False  # Stop the current stream
-    video_path = videos[ai_mode]
-    streaming = True   # Start the new stream with the updated AI mode
-
-    # Stream the appropriate video based on AI mode
-    print(f"Streaming in mode: {ai_mode, video_path}")
-    return Response(stream_video(video_path), mimetype='multipart/x-mixed-replace; boundary=frame')
-
+    if ai_mode == 'AI1':
+        print("AI1")
+        return Response(All_Obj_Detection(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if ai_mode == 'AI2':
+        print("AI2")
+        return Response(All_Obj_Detection_In_Boundary(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if ai_mode == 'AI3':
+        print("AI3")
+        return Response(Obj_Counter(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+    else:
+        return Response(generate_frames(rtsp_url), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/update_ai_mode', methods=['POST'])
 def update_ai_mode():
-    global ai_mode
+    global ai_mode, current_thread, streaming
     new_ai_mode = request.form.get('ai_mode')
-    if new_ai_mode not in videos:
+    
+    if new_ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4']:
         return "Invalid AI mode", 400
     
     ai_mode = new_ai_mode
     print(f"AI Mode updated to: {ai_mode}")
     
-    # Call video_feed to reset the stream with the new AI mode
-    return video_feed()
+    # Stop the current streaming thread if it exists
+    if current_thread and current_thread.is_alive():
+        streaming = False
+        current_thread.join()
 
+    # Start a new streaming thread with the updated AI mode
+    streaming = True
+    current_thread = Thread(target=lambda: video_feed())
+    current_thread.start()
+    
+    return "AI Mode updated and video stream reset", 200
 
 # Start the Flask server in a separate thread
 def start_flask():
     app.run(port=5001)  # Port for Flask API
-
 
 # Custom HTTP server handler
 class CustomHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
-
 # Start the HTTP server
 def start_http_server():
     with socketserver.TCPServer(("", PORT), CustomHandler) as httpd:
         print(f"Serving HTTP on localhost:{PORT} (http://127.0.0.1:{PORT})")
         httpd.serve_forever()
-
 
 # Run both servers
 if __name__ == "__main__":
