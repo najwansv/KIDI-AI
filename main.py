@@ -2,7 +2,7 @@
 import http.server
 import socketserver
 from threading import Thread
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 from flask_cors import CORS
 from AI.AI import  generate_frames, All_Obj_Detection, All_Obj_Detection_In_Boundary, Obj_Counter, Gender_Mood_Age_Detection
 
@@ -20,6 +20,25 @@ streaming = False  # Flag to control streaming
 rtsp_url = None  # RTSP URL
 ai_mode = None  # AI mode
 current_thread = None  # Current streaming thread
+
+# Global variables to store detection data
+boundary_objects = {}
+object_counts = {}
+
+@app.route('/get_detection_data')
+def get_detection_data():
+    if ai_mode == 'AI2':
+        return jsonify(boundary_objects)
+    elif ai_mode == 'AI3':
+        return jsonify(object_counts)
+    return jsonify({})
+
+@app.route('/get_object_count', methods=['POST'])
+def get_object_count():
+    data = request.json
+    obj_name = data.get('object')
+    count = object_counts.get(obj_name, 0)
+    return jsonify({'count': count})
 
 @app.route('/start_streaming', methods=['POST'])
 def start_streaming():
