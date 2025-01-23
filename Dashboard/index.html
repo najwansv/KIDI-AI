@@ -37,17 +37,103 @@
                 <!-- Right section: video -->
                 <div id="right-section">
                     <img id="video-stream" src="" alt="Video Stream">
+                    <!-- Add this right after the video-stream img element in index.html -->
+                    <div id="right-section">
+                        <img id="video-stream" src="" alt="Video Stream">
+                        <div id="detection-info" style="margin-top: 20px; padding: 10px; background: #f0f0f0;">
+                            <div id="text-output"></div>
+                            <div id="object-selector" style="display: none;">
+                                <select id="object-dropdown">
+                                    <option value="">Select Object</option>
+                                </select>
+                                <div id="count-display"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <div id="info-box">
-            <!-- Additional information can be displayed here -->
         </div>
     </div>
 
     <script>
         let aiMode = null;
+
+        // Add this to your existing script section
+        let objectList = new Set();
+        let selectedObject = '';
+
+        // Function to update text output
+        function updateTextOutput(data) {
+            const textOutput = document.getElementById('text-output');
+            const objectSelector = document.getElementById('object-selector');
+            
+            if (aiMode === 'AI2') {
+                textOutput.innerHTML = `Objects in boundary:<br>${formatObjectCounts(data)}`;
+                objectSelector.style.display = 'none';
+            } else if (aiMode === 'AI3') {
+                objectSelector.style.display = 'block';
+                updateObjectDropdown(data);
+            }
+        }
+
+        // Function to format object counts for AI2
+        function formatObjectCounts(data) {
+            return Object.entries(data)
+                .map(([obj, count]) => `${obj}: ${count}`)
+                .join('<br>');
+        }
+
+        // Function to update dropdown for AI3
+        function updateObjectDropdown(data) {
+            const dropdown = document.getElementById('object-dropdown');
+            Object.keys(data).forEach(obj => objectList.add(obj));
+            
+            // Only update options if they changed
+            if (dropdown.options.length !== objectList.size + 1) {
+                dropdown.innerHTML = '<option value="">Select Object</option>';
+                [...objectList].sort().forEach(obj => {
+                    const option = document.createElement('option');
+                    option.value = obj;
+                    option.textContent = obj;
+                    dropdown.appendChild(option);
+                });
+            }
+        }
+
+        // Add event listener for dropdown
+        document.getElementById('object-dropdown').addEventListener('change', function(e) {
+            selectedObject = e.target.value;
+            updateSelectedObjectCount();
+        });
+
+        // Function to update count for selected object
+        function updateSelectedObjectCount() {
+            fetch('http://localhost:5001/get_object_count', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ object: selectedObject })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('count-display').innerHTML = 
+                    `Obj Count: ${selectedObject}<br>Count: ${data.count}`;
+            });
+        }
+
+        // Add periodic updates
+        function startPeriodicUpdates() {
+            setInterval(() => {
+                if (aiMode === 'AI2' || aiMode === 'AI3') {
+                    fetch('http://localhost:5001/get_detection_data')
+                    .then(response => response.json())
+                    .then(data => updateTextOutput(data));
+                }
+            }, 1000); // Update every second
+        }
+
+        startPeriodicUpdates();
 
         document.getElementById('AI1').addEventListener('click', function() {
             aiMode = 'AI1';
