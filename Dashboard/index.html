@@ -10,7 +10,7 @@
     <div id="container">
         <div id="header">
             <img src="logo.png" alt="Logo" id="logo">
-            <h1>KiDi IoT</h1>
+            <!-- <h1>KiDi IoT</h1> -->
         </div>
         
         <!-- Page 1: Start Stream -->
@@ -182,6 +182,14 @@
             })
             .then(() => {
                 resetDetectionData();
+                
+                // Show/hide info-box based on AI mode
+                const infoBox = document.getElementById('info-box');
+                if (mode === 'AI2' || mode === 'AI3') {
+                    infoBox.style.display = 'block';
+                } else {
+                    infoBox.style.display = 'none';
+                }
                 
                 fetch('http://localhost:5001/update_ai_mode', {
                     method: 'POST',
