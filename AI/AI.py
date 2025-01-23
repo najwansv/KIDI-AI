@@ -74,6 +74,7 @@ def is_in_boundary(box, b_x1, b_y1, b_x2, b_y2):
 
 def All_Obj_Detection_In_Boundary(rtsp_url):
     global boundary_objects
+    boundary_objects = {}
     cap = cv2.VideoCapture(rtsp_url)
     boundary_x1, boundary_y1 = 100, 100
     boundary_x2, boundary_y2 = 500, 400
@@ -92,7 +93,7 @@ def All_Obj_Detection_In_Boundary(rtsp_url):
                 cls_name = model.names[int(pred[5])]
                 boundary_objects[cls_name] = boundary_objects.get(cls_name, 0) + 1
 
-        # Draw boundary box
+        # Draw boundary boxhttps://chatgpt.com/gpts
         cv2.rectangle(annotated_frame, (boundary_x1, boundary_y1), 
                      (boundary_x2, boundary_y2), (255, 0, 0), 2)
 
@@ -113,38 +114,67 @@ def All_Obj_Detection_In_Boundary(rtsp_url):
 
 #======================= AI 3 ===========================================
 
-def crosses_line(cy, line_y=300):
-    return abs(cy - line_y) < 5
+def calculate_centroid(x1, y1, x2, y2):
+    # Calculate the centroid of the bounding box
+    cx = (x1 + x2) // 2
+    cy = (y1 + y2) // 2
+    return cx, cy
 
 def Obj_Counter(rtsp_url):
     global object_counts
+    object_counts = {}  # Reset at start
+    tracked_objects = {}  # Track objects across frames
+    
     cap = cv2.VideoCapture(rtsp_url)
-    line_y = 300  # Crossing line y-coordinate
+    line_x = 500  # Vertical line x-coordinate
     
     while True:
         success, frame = cap.read()
         if not success:
             break
 
-        height = frame.shape[0]
-        cv2.line(frame, (0, line_y), (frame.shape[1], line_y), (0, 255, 0), 2)
+        width = frame.shape[1]
+        cv2.line(frame, (line_x, 0), (line_x, frame.shape[0]), (0, 255, 0), 2)
 
+        # Run YOLOv5 model on the frame
         results = model(frame)
         annotated_frame = results.render()[0].copy()
 
+        current_objects = {}
+
         for pred in results.pred[0]:
             x1, y1, x2, y2 = map(int, pred[:4])
-            cy = (y1 + y2) // 2
-            cls_name = model.names[int(pred[5])]
+            cx, cy = calculate_centroid(x1, y1, x2, y2)
+            cls_name = model.names[int(pred[5])]  # Get object class name
             
+            # Create a unique identifier for each object based on its class and position
+            obj_id = f"{cls_name}_{x1}_{y1}_{x2}_{y2}"
+            
+            # Initialize object count if not exists
             if cls_name not in object_counts:
                 object_counts[cls_name] = 0
-                
-            if crosses_line(cy, line_y):
-                if cy < height//2:  # Only count objects moving down
+            
+            # Draw centroid on the object
+            cv2.circle(annotated_frame, (cx, cy), 10, (0, 0, 255), -1)
+            
+            # Check if this object was tracked in previous frames
+            if obj_id in tracked_objects:
+                prev_state = tracked_objects[obj_id]
+                # Count object only if it crosses the line from left to right or right to left
+                if (prev_state['cx'] < line_x and cx >= line_x) or (prev_state['cx'] > line_x and cx <= line_x):
                     object_counts[cls_name] += 1
+            
+            # Update current tracked objects
+            current_objects[obj_id] = {
+                'cx': cx,
+                'cy': cy,
+                'cls_name': cls_name
+            }
+        
+        # Update tracked objects for the next frame
+        tracked_objects = current_objects
 
-        # Display counts
+        # Display counts on the frame
         y_offset = 50
         for obj, count in object_counts.items():
             cv2.putText(annotated_frame, f'{obj}: {count}', 
@@ -152,10 +182,12 @@ def Obj_Counter(rtsp_url):
                        1, (0, 255, 0), 2)
             y_offset += 30
 
+        # Yield the frame as a JPEG
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
     cap.release()
 
 #======================= AI 4 ===========================================
