@@ -52,8 +52,6 @@ def All_Obj_Detection(rtsp_url):
 
         # Draw bounding boxes on the frame
         annotated_frame = results.render()[0]
-        # Draw bounding boxes on the frame
-        annotated_frame = results.render()[0]
 
         # Encode frame as JPEG
         _, buffer = cv2.imencode('.jpg', annotated_frame)
@@ -131,7 +129,6 @@ def calculate_centroid(x1, y1, x2, y2):
 def Obj_Counter(rtsp_url):
     global object_counts
     object_counts = {}
-    tracked_objects = {}
     
     cap = cv2.VideoCapture(rtsp_url)
     
@@ -160,7 +157,7 @@ def Obj_Counter(rtsp_url):
                 object_counts[cls_name] = 0
             
             # Draw centroid on the object
-            cv2.circle(annotated_frame, center, 5, (0, 0, 255), -1)
+            cv2.circle(annotated_frame, center, 10, (0, 0, 255), -1)
             
             # Check if object is crossing the line
             if is_crossing_line(center, line):
@@ -168,8 +165,8 @@ def Obj_Counter(rtsp_url):
             
             # Draw bounding box and label
             cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(annotated_frame, cls_name, (x1, y1 - 10), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            # cv2.putText(annotated_frame, cls_name, (x1, y1 - 10), 
+            #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
         # Display counts on the frame
         y_offset = 50
