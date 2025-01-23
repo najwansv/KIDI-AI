@@ -22,18 +22,16 @@ body {
 #header {
     display: flex;
     align-items: center;
-    justify-content: center; /* Center the title */
+    justify-content: center;
     width: 100%;
     margin-bottom: 20px;
-    position: relative; /* For absolute positioning of the logo */
 }
 
 #logo {
-    position: absolute; /* Position the logo absolutely */
-    left: 0;
-    width: 125px; /* Adjust size as needed */
+    width: 125px;
     height: auto;
-    margin-left: 20px; /* Add some space from the left edge */
+    display: block;
+    margin: 0 auto;
 }
 
 #rtsp-section {
