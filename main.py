@@ -33,6 +33,13 @@ def get_detection_data():
         return jsonify(object_counts)
     return jsonify({})
 
+@app.route('/reset_data', methods=['POST'])
+def reset_data():
+    global boundary_objects, object_counts
+    boundary_objects = {}
+    object_counts = {}
+    return "Data reset", 200
+
 @app.route('/get_object_count', methods=['POST'])
 def get_object_count():
     data = request.json
