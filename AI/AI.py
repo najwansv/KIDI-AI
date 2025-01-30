@@ -1,9 +1,13 @@
 import cv2
 import torch
-from deepface import DeepFace
 
-model_path = '/Model/yolov5m.pt'
-model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path)
+from ultralytics import YOLO
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model_path = "E:/Kuliah/ANTARES/Code/KIDI AI/Model/yolo11m.pt"
+model = YOLO(model_path).to(device)
+# print device used
+print(f"Using device: {device}")
 
 # Define a counting line (adjust as per your video resolution)
 LINE_POSITION = 1200  # Vertical position of the line
@@ -14,21 +18,18 @@ boundary_objects = {}  # Dictionary to track objects in the boundary area
 #======================= Non AI ===========================================
 def generate_frames(rtsp_url):
     cap = cv2.VideoCapture(rtsp_url)
-
     if not cap.isOpened():
         print("Error: Could not open video stream")
         return
 
     while cap.isOpened():
         ret, frame = cap.read()
-
         if not ret:
             print("Error: Could not read frame")
             break
 
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
-
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
@@ -36,7 +37,6 @@ def generate_frames(rtsp_url):
 
 #======================= AI 1 ===========================================
 def All_Obj_Detection(rtsp_url):
-    # Open the RTSP stream
     cap = cv2.VideoCapture(rtsp_url)
     if not cap.isOpened():
         print("Error: Unable to open RTSP stream")
@@ -49,15 +49,12 @@ def All_Obj_Detection(rtsp_url):
 
         # Perform object detection
         results = model(frame)
+        
+        # Get the first result and plot it
+        annotated_frame = results[0].plot()
 
-        # Draw bounding boxes on the frame
-        annotated_frame = results.render()[0]
-
-        # Encode frame as JPEG
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         frame = buffer.tobytes()
-
-        # Yield the frame as a byte stream
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
@@ -67,8 +64,6 @@ def All_Obj_Detection(rtsp_url):
 def is_in_boundary(box, b_x1, b_y1, b_x2, b_y2):
     x1, y1, x2, y2 = map(int, box)
     return x1 >= b_x1 and y1 >= b_y1 and x2 <= b_x2 and y2 <= b_y2
-
-
 
 def All_Obj_Detection_In_Boundary(rtsp_url):
     global boundary_objects
@@ -83,15 +78,20 @@ def All_Obj_Detection_In_Boundary(rtsp_url):
             break
 
         results = model(frame)
-        annotated_frame = results.render()[0].copy()
+        annotated_frame = results[0].plot()
 
         boundary_objects = {}
-        for pred in results.pred[0]:
-            if is_in_boundary(pred[:4], boundary_x1, boundary_y1, boundary_x2, boundary_y2):
-                cls_name = model.names[int(pred[5])]
-                boundary_objects[cls_name] = boundary_objects.get(cls_name, 0) + 1
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                # Get box coordinates
+                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                if is_in_boundary([x1, y1, x2, y2], boundary_x1, boundary_y1, boundary_x2, boundary_y2):
+                    cls = int(box.cls[0])
+                    cls_name = model.names[cls]
+                    boundary_objects[cls_name] = boundary_objects.get(cls_name, 0) + 1
 
-        # Draw boundary boxhttps://chatgpt.com/gpts
+        # Draw boundary box
         cv2.rectangle(annotated_frame, (boundary_x1, boundary_y1), 
                      (boundary_x2, boundary_y2), (255, 0, 0), 2)
 
@@ -112,6 +112,11 @@ def All_Obj_Detection_In_Boundary(rtsp_url):
 
 #======================= AI 3 ===========================================
 
+def calculate_centroid(x1, y1, x2, y2):
+    cx = (x1 + x2) // 2
+    cy = (y1 + y2) // 2
+    return cx, cy
+
 def is_crossing_line(center, line):
     x1, y1 = line[0]
     x2, y2 = line[1]
@@ -120,11 +125,6 @@ def is_crossing_line(center, line):
     elif x1 == x2:  # Vertical line
         return center[0] == x1
     return False
-
-def calculate_centroid(x1, y1, x2, y2):
-    cx = (x1 + x2) // 2
-    cy = (y1 + y2) // 2
-    return cx, cy
 
 def Obj_Counter(rtsp_url):
     global object_counts
@@ -138,37 +138,35 @@ def Obj_Counter(rtsp_url):
             break
 
         height, width = frame.shape[:2]
-        # Define counting line in the middle
         line = [(width // 2, 0), (width // 2, height)]
         
-        # Draw the counting line
-        cv2.line(frame, line[0], line[1], (0, 255, 0), 2)
-
         results = model(frame)
-        annotated_frame = results.render()[0].copy()
+        annotated_frame = results[0].plot()
 
-        for pred in results.xyxy[0]:
-            x1, y1, x2, y2 = map(int, pred[:4])
-            center = calculate_centroid(x1, y1, x2, y2)
-            cls_name = model.names[int(pred[5])]
-            
-            # Initialize object count if not exists
-            if cls_name not in object_counts:
-                object_counts[cls_name] = 0
-            
-            # Draw centroid on the object
-            cv2.circle(annotated_frame, center, 10, (0, 0, 255), -1)
-            
-            # Check if object is crossing the line
-            if is_crossing_line(center, line):
-                object_counts[cls_name] += 1
-            
-            # Draw bounding box and label
-            cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            # cv2.putText(annotated_frame, cls_name, (x1, y1 - 10), 
-            #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+        # Draw the counting line
+        cv2.line(annotated_frame, line[0], line[1], (0, 255, 0), 2)
 
-        # Display counts on the frame
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                # Get box coordinates
+                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                x1, y1, x2, y2 = map(int, [x1, y1, x2, y2])
+                
+                center = calculate_centroid(x1, y1, x2, y2)
+                cls = int(box.cls[0])
+                cls_name = model.names[cls]
+                
+                if cls_name not in object_counts:
+                    object_counts[cls_name] = 0
+                
+                # Draw centroid
+                cv2.circle(annotated_frame, center, 10, (0, 0, 255), -1)
+                
+                if is_crossing_line(center, line):
+                    object_counts[cls_name] += 1
+
+        # Display counts
         y_offset = 50
         for obj, count in object_counts.items():
             cv2.putText(annotated_frame, f'{obj}: {count}', 
@@ -176,7 +174,6 @@ def Obj_Counter(rtsp_url):
                        1, (0, 255, 0), 2)
             y_offset += 30
 
-        # Yield the frame as JPEG
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
@@ -276,3 +273,156 @@ def Gender_Mood_Age_Detection(rtsp_url):
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
     cap.release()
+
+    # def Gender_Mood_Age_Detection(rtsp_url):
+    # """
+    # Detect gender, mood, and age using Caffe models from video stream.
+    
+    # :param rtsp_url: URL of the RTSP video stream
+    # :yield: Frames with gender, mood, and age annotations
+    # """
+    # try:
+    #     # Load models
+    #     faceProto = "Model/caffemodel/opencv_face_detector.pbtxt"
+    #     faceModel = "Model/caffemodel/opencv_face_detector_uint8.pb"
+    #     ageProto = "Model/caffemodel/age_deploy.prototxt"
+    #     ageModel = "Model/caffemodel/age_net.caffemodel"
+    #     genderProto = "Model/caffemodel/gender_deploy.prototxt"
+    #     genderModel = "Model/caffemodel/gender_net.caffemodel"
+
+    #     # Initialize networks with error handling
+    #     try:
+    #         faceNet = cv2.dnn.readNet(faceModel, faceProto)
+    #         ageNet = cv2.dnn.readNet(ageModel, ageProto)
+    #         genderNet = cv2.dnn.readNet(genderModel, genderProto)
+    #     except Exception as e:
+    #         print(f"Error loading models: {e}")
+    #         return
+
+    #     # Model parameters
+    #     MODEL_MEAN_VALUES = (78.4263377603, 87.7689143744, 114.895847746)
+    #     ageList = ['(0-2)', '(4-6)', '(8-12)', '(15-20)', '(25-32)', '(38-43)', '(48-53)', '(60-100)']
+    #     genderList = ['Male', 'Female']
+    #     padding = 20
+
+    #     def highlightFace(net, frame, conf_threshold=0.7):
+    #         if frame is None:
+    #             return None, []
+                
+    #         frameOpencvDnn = frame.copy()
+    #         frameHeight = frameOpencvDnn.shape[0]
+    #         frameWidth = frameOpencvDnn.shape[1]
+            
+    #         try:
+    #             blob = cv2.dnn.blobFromImage(frameOpencvDnn, 1.0, (300, 300), 
+    #                                        [104, 117, 123], True, False)
+    #             net.setInput(blob)
+    #             detections = net.forward()
+    #             faceBoxes = []
+
+    #             for i in range(detections.shape[2]):
+    #                 confidence = detections[0, 0, i, 2]
+    #                 if confidence > conf_threshold:
+    #                     x1 = int(detections[0, 0, i, 3] * frameWidth)
+    #                     y1 = int(detections[0, 0, i, 4] * frameHeight)
+    #                     x2 = int(detections[0, 0, i, 5] * frameWidth)
+    #                     y2 = int(detections[0, 0, i, 6] * frameHeight)
+                        
+    #                     # Ensure coordinates are within frame boundaries
+    #                     x1 = max(0, min(x1, frameWidth - 1))
+    #                     y1 = max(0, min(y1, frameHeight - 1))
+    #                     x2 = max(0, min(x2, frameWidth - 1))
+    #                     y2 = max(0, min(y2, frameHeight - 1))
+                        
+    #                     faceBoxes.append([x1, y1, x2, y2])
+                        
+    #             return frameOpencvDnn, faceBoxes
+    #         except Exception as e:
+    #             print(f"Error in face detection: {e}")
+    #             return frameOpencvDnn, []
+
+    #     # Open RTSP stream
+    #     cap = cv2.VideoCapture(rtsp_url)
+    #     if not cap.isOpened():
+    #         print("Error: Unable to open RTSP stream")
+    #         return
+
+    #     while True:
+    #         try:
+    #             ret, frame = cap.read()
+    #             if not ret or frame is None:
+    #                 print("Error: Could not read frame")
+    #                 break
+
+    #             resultImg, faceBoxes = highlightFace(faceNet, frame)
+    #             if resultImg is None:
+    #                 continue
+                
+    #             for faceBox in faceBoxes:
+    #                 try:
+    #                     # Extract face with padding
+    #                     face = frame[max(0, faceBox[1]-padding):
+    #                                min(faceBox[3]+padding, frame.shape[0]-1),
+    #                                max(0, faceBox[0]-padding):
+    #                                min(faceBox[2]+padding, frame.shape[1]-1)]
+
+    #                     if face.size == 0:
+    #                         continue
+
+    #                     # Gender detection
+    #                     blob = cv2.dnn.blobFromImage(face, 1.0, (227, 227), 
+    #                                                MODEL_MEAN_VALUES, swapRB=False)
+    #                     genderNet.setInput(blob)
+    #                     genderPreds = genderNet.forward()
+    #                     gender = genderList[genderPreds[0].argmax()]
+
+    #                     # Age detection
+    #                     ageNet.setInput(blob)
+    #                     agePreds = ageNet.forward()
+    #                     age = ageList[agePreds[0].argmax()]
+
+    #                     # Draw rectangle and label
+    #                     thickness = max(1, int(round(frame.shape[0]/150)))
+    #                     cv2.rectangle(resultImg, 
+    #                                 (faceBox[0], faceBox[1]), 
+    #                                 (faceBox[2], faceBox[3]),
+    #                                 (0, 255, 0), 
+    #                                 thickness)
+                        
+    #                     # Add label with better positioning
+    #                     label = f'{gender}, {age}'
+    #                     label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.8, 2)[0]
+    #                     label_x = faceBox[0]
+    #                     label_y = max(faceBox[1] - 10, label_size[1])
+                        
+    #                     cv2.putText(resultImg, 
+    #                               label,
+    #                               (label_x, label_y),
+    #                               cv2.FONT_HERSHEY_SIMPLEX, 
+    #                               0.8, 
+    #                               (0, 255, 255), 
+    #                               2, 
+    #                               cv2.LINE_AA)
+                    
+    #                 except Exception as e:
+    #                     print(f"Error processing face: {e}")
+    #                     continue
+
+    #             # Encode frame as JPEG
+    #             _, buffer = cv2.imencode('.jpg', resultImg)
+    #             frame = buffer.tobytes()
+
+    #             # Yield the frame as byte stream
+    #             yield (b'--frame\r\n'
+    #                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+    #         except Exception as e:
+    #             print(f"Error in main loop: {e}")
+    #             continue
+
+    # except Exception as e:
+    #     print(f"Fatal error in Gender_Mood_Age_Detection: {e}")
+    
+    # finally:
+    #     if 'cap' in locals():
+    #         cap.release()
