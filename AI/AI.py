@@ -1,5 +1,6 @@
 import cv2
 import torch
+import time
 
 from ultralytics import YOLO
 
@@ -22,18 +23,31 @@ def generate_frames(rtsp_url):
         print("Error: Could not open video stream")
         return
 
-    while cap.isOpened():
+    fps = cap.get(cv2.CAP_PROP_FPS)  # Get the FPS of the video stream
+    prev_time = time.time()  # Initial time to calculate FPS
+
+    while True:
         ret, frame = cap.read()
         if not ret:
-            print("Error: Could not read frame")
             break
 
-        _, buffer = cv2.imencode('.jpg', frame)
+        # Calculate FPS
+        current_time = time.time()
+        elapsed_time = current_time - prev_time
+        prev_time = current_time
+        frame_rate = 1 / elapsed_time if elapsed_time > 0 else 0
+
+        # Add FPS text to frame (bottom-right corner)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        text = f'FPS: {frame_rate:.2f}'
+        cv2.putText(frame, text, (frame.shape[1] - 150, frame.shape[0] - 20), font, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
+
+        # Encode frame to JPEG
+        ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
+
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-    cap.release()
 
 #======================= AI 1 ===========================================
 def All_Obj_Detection(rtsp_url):
@@ -41,6 +55,8 @@ def All_Obj_Detection(rtsp_url):
     if not cap.isOpened():
         print("Error: Unable to open RTSP stream")
         return
+
+    prev_time = time.time()
 
     while True:
         ret, frame = cap.read()
@@ -52,6 +68,15 @@ def All_Obj_Detection(rtsp_url):
         
         # Get the first result and plot it
         annotated_frame = results[0].plot()
+
+        # Calculate FPS
+        curr_time = time.time()
+        fps = int(1 / (curr_time - prev_time))
+        prev_time = curr_time
+
+        # Overlay FPS on the frame
+        cv2.putText(annotated_frame, f'FPS: {fps}', (annotated_frame.shape[1] - 100, annotated_frame.shape[0] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         frame = buffer.tobytes()
@@ -71,6 +96,7 @@ def All_Obj_Detection_In_Boundary(rtsp_url):
     cap = cv2.VideoCapture(rtsp_url)
     boundary_x1, boundary_y1 = 100, 100
     boundary_x2, boundary_y2 = 500, 400
+    prev_time = time.time()
     
     while True:
         success, frame = cap.read()
@@ -103,10 +129,21 @@ def All_Obj_Detection_In_Boundary(rtsp_url):
                        1, (255, 0, 0), 2)
             y_offset += 30
 
+        # Calculate FPS
+        curr_time = time.time()
+        fps = int(1 / (curr_time - prev_time))
+        prev_time = curr_time
+
+        # Overlay FPS at the bottom-right
+        cv2.putText(annotated_frame, f'FPS: {fps}', 
+                    (annotated_frame.shape[1] - 100, annotated_frame.shape[0] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         frame = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        
     cap.release()
 
 
@@ -132,6 +169,12 @@ def Obj_Counter(rtsp_url):
     
     cap = cv2.VideoCapture(rtsp_url)
     
+    if not cap.isOpened():
+        print("Error: Unable to open RTSP stream")
+        return
+    
+    prev_time = time.time()
+
     while True:
         success, frame = cap.read()
         if not success:
@@ -173,6 +216,16 @@ def Obj_Counter(rtsp_url):
                        (10, y_offset), cv2.FONT_HERSHEY_SIMPLEX, 
                        1, (0, 255, 0), 2)
             y_offset += 30
+
+        # Calculate FPS
+        curr_time = time.time()
+        fps = int(1 / (curr_time - prev_time))
+        prev_time = curr_time
+
+        # Overlay FPS at the bottom-right
+        cv2.putText(annotated_frame, f'FPS: {fps}', 
+                    (annotated_frame.shape[1] - 100, annotated_frame.shape[0] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         _, buffer = cv2.imencode('.jpg', annotated_frame)
         frame = buffer.tobytes()
@@ -233,6 +286,8 @@ def Gender_Mood_Age_Detection(rtsp_url):
         print("Error: Unable to open RTSP stream")
         return
 
+    prev_time = time.time()
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -263,6 +318,16 @@ def Gender_Mood_Age_Detection(rtsp_url):
                          (0, 255, 0), int(round(frame.shape[0]/150)), 8)
             cv2.putText(resultImg, f'{gender}, {age}', (faceBox[0], faceBox[1]-10), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2, cv2.LINE_AA)
+
+        # Calculate FPS
+        curr_time = time.time()
+        fps = int(1 / (curr_time - prev_time))
+        prev_time = curr_time
+
+        # Overlay FPS at the bottom-right
+        cv2.putText(resultImg, f'FPS: {fps}', 
+                    (resultImg.shape[1] - 100, resultImg.shape[0] - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
         # Encode frame as JPEG
         _, buffer = cv2.imencode('.jpg', resultImg)
