@@ -68,6 +68,29 @@ def start_streaming():
 
     return "Streaming started", 200
 
+@app.route('/start_local_video', methods=['POST'])
+def start_local_video():
+    global streaming, rtsp_url, ai_mode
+    data = request.json
+    local_video_path = data.get('local_video_path')
+
+    if not local_video_path:
+        return "Local video path is required", 400
+
+    rtsp_url = local_video_path  # Treat the local video path as the RTSP URL
+
+    if streaming:  # Check if streaming is already running
+        return "Streaming is already running", 400
+
+    streaming = True
+
+    # Start streaming with NonAI logic
+    if not ai_mode or ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4']:
+        print("Running NonAI mode")
+        Thread(target=lambda: generate_frames(rtsp_url)).start()
+
+    return "Local video started", 200
+
 @app.route('/stop_streaming', methods=['POST'])
 def stop_streaming():
     global streaming

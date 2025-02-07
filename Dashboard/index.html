@@ -20,6 +20,12 @@
                 <label for="rtsp-link">RTSP Link:</label>
                 <input type="text" id="rtsp-link" name="rtsp-link" placeholder="Enter RTSP link here">
                 <button id="start-streaming">Start Streaming</button>
+                <div>
+                    <button id="start-local-video-1">Pedestrian</button>
+                    <button id="start-local-video-2">Pedestrian 2</button>
+                    <button id="start-local-video-3">Road Traffic 1</button>
+                    <button id="start-local-video-4">Road Traffic 2</button>
+                </div>
             </div>
         </div>
 
@@ -107,6 +113,49 @@
                 updateObjectDropdown(data);
             }
         }
+
+
+        document.getElementById('start-local-video-1').addEventListener('click', function() {
+            startLocalVideo('resources/Pedestrian.mp4', this);
+        });
+
+        document.getElementById('start-local-video-2').addEventListener('click', function() {
+            startLocalVideo('resources/vecteezy_people-crossing-the-street-on-green-light_28257902.mp4', this);
+        });
+
+        document.getElementById('start-local-video-3').addEventListener('click', function() {
+            startLocalVideo('resources/RoadTraffic1.mp4', this);
+        });
+
+        document.getElementById('start-local-video-4').addEventListener('click', function() {
+            startLocalVideo('resources/RoadTraffic2.mp4', this);
+        });
+
+        function startLocalVideo(videoPath, button) {
+            setLoading(button, true);
+
+            fetch('http://localhost:5001/start_local_video', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ local_video_path: videoPath })
+            })
+            .then(response => {
+                if (response.ok) {
+                    showToast('Local video started successfully!', 'success');
+                    document.getElementById('video-stream').src = "http://localhost:5001/video_feed";
+                    document.getElementById('start-page').style.display = 'none';
+                    document.getElementById('stream-section').style.display = 'flex';
+                } else {
+                    response.text().then(text => showToast(text, 'error'));
+                }
+            })
+            .catch(error => showToast(error.message, 'error'))
+            .finally(() => setLoading(button, false));
+        }
+
+
 
         // Function to format object counts for AI2
         function formatObjectCounts(data) {
