@@ -177,3 +177,52 @@ select {
     from { transform: translateY(100%); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
+
+/* Add these styles to your existing style.css */
+
+#rtsp-section {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.radio-input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.radio-input-group label {
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.radio-input-group input[type="text"],
+.radio-input-group select {
+    flex: 1;
+    padding: 10px;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s, background-color 0.3s;
+}
+
+.radio-input-group input[type="text"]:focus,
+.radio-input-group select:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.radio-input-group input[type="text"]:disabled,
+.radio-input-group select:disabled {
+    background-color: #f0f0f0;
+    border-color: #e0e0e0;
+    color: #a0a0a0;
+    cursor: not-allowed;
+}
+
+#start-streaming {
+    margin-top: 20px;
+}

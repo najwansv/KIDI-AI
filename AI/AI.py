@@ -19,6 +19,7 @@ boundary_objects = {}  # Dictionary to track objects in the boundary area
 #======================= Non AI ===========================================
 def generate_frames(video_source):
     cap = cv2.VideoCapture(video_source)
+    cap.set(cv2.CAP_PROP_OPEN_TIMEOUT_MSEC, 6000)
     if not cap.isOpened():
         print("Error: Could not open video stream")
         return
