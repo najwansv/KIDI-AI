@@ -83,6 +83,14 @@ button:hover {
     transform: translateY(-1px);
 }
 
+#stop-streaming {
+    background: var(--error);
+}
+
+#NonAI {
+    background: var(--secondary);
+}
+
 #left-section {
     display: flex;
     flex-direction: column;
@@ -207,6 +215,7 @@ select {
     border-radius: 6px;
     font-size: 16px;
     transition: border-color 0.3s, background-color 0.3s;
+    margin: auto; 
 }
 
 .radio-input-group input[type="text"]:focus,

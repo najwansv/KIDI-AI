@@ -60,7 +60,7 @@ def start_streaming():
     source_url = rtsp_url if rtsp_url else local_video_path
     print(f"Starting stream with source: {source_url}")
 
-    if not ai_mode or ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4']:
+    if not ai_mode or ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4', 'NonAI']:
         print("Running NonAI mode")
         Thread(target=lambda: generate_frames(source_url)).start()
 
@@ -93,6 +93,9 @@ def video_feed():
     if ai_mode == 'AI4':
         print("AI4")
         return Response(Gender_Mood_Age_Detection(source_url), mimetype='multipart/x-mixed-replace; boundary=frame')
+    if ai_mode == 'NonAI':
+        print("NonAI")
+        return Response(generate_frames(source_url), mimetype='multipart/x-mixed-replace; boundary=frame')
     else:
         return Response(generate_frames(source_url), mimetype='multipart/x-mixed-replace; boundary=frame')
 
@@ -101,7 +104,7 @@ def update_ai_mode():
     global ai_mode, current_thread, streaming
     new_ai_mode = request.form.get('ai_mode')
     
-    if new_ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4']:
+    if new_ai_mode not in ['AI1', 'AI2', 'AI3', 'AI4', 'NonAI']:
         return "Invalid AI mode", 400
     
     ai_mode = new_ai_mode

@@ -51,10 +51,11 @@
                 <!-- Left section: controls and text -->
                 <div id="left-section">
                     <p>Select AI Mode:</p>
-                    <button id="AI1">AI 1</button>
-                    <button id="AI2">AI 2</button>
-                    <button id="AI3">AI 3</button>
-                    <button id="AI4">AI 4</button>
+                    <button id="AI1">1: All Object Detection</button>
+                    <button id="AI2">2: Object in Boundary Count</button>
+                    <button id="AI3">3: Object Counting</button>
+                    <button id="AI4">4: Age, Gender Detection</button>
+                    <button id="NonAI">Non AI</button>
                     <button id="stop-streaming">Stop Streaming</button>
                 </div>
                 <!-- Right section: video -->
@@ -189,6 +190,11 @@
     
             document.getElementById('AI4').addEventListener('click', function() {
                 aiMode = 'AI4';
+                updateAiMode(aiMode);
+            });
+
+            document.getElementById('NonAI').addEventListener('click', function() {
+                aiMode = 'NonAI';
                 updateAiMode(aiMode);
             });
     
